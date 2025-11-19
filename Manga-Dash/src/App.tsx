@@ -1,5 +1,7 @@
-import React, { useEffect, useRef, useState } from "react";
+﻿import React, { useEffect, useRef, useState, useMemo } from "react";
+import { Routes, Route, Link, useParams, useNavigate } from "react-router-dom";
 import "./App.css";
+
 import onepiece from "./images/onepiece.jpg";
 import naruto from "./images/naruto.jpg";
 import mha from "./images/hero-academia.jpg";
@@ -15,7 +17,7 @@ import yourlie from "./images/yourlie.jpg";
 import kimitodoke from "./images/todoke.jpg";
 import nana from "./images/nana.jpg";
 
-
+// ---------------- TYPES ----------------
 
 type Manga = {
   title: string;
@@ -35,6 +37,8 @@ type MangaSection = {
   accentClass: string;
   mangas: Manga[];
 };
+
+// ---------------- DONNÉES ----------------
 
 const SECTIONS: MangaSection[] = [
   {
@@ -190,6 +194,17 @@ const SECTIONS: MangaSection[] = [
   },
 ];
 
+// slug pour les URLs : "One Piece" -> "one-piece"
+const slugify = (title: string) =>
+  title
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+
+// ---------------- CARROUSEL ----------------
+
 function MangaCarousel({ section }: { section: MangaSection }) {
   const trackRef = useRef<HTMLDivElement | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -229,9 +244,12 @@ function MangaCarousel({ section }: { section: MangaSection }) {
                   isExpanded ? "manga-card-expanded" : ""
                 }`}
               >
-                <div className="manga-image-wrapper">
+                <Link
+                  to={`/manga/${slugify(manga.title)}`}
+                  className="manga-image-wrapper"
+                >
                   <img src={manga.image} alt={manga.title} />
-                </div>
+                </Link>
 
                 <div className="manga-header">
                   <div className="manga-pill">{manga.tag ?? "Manga"}</div>
@@ -242,27 +260,33 @@ function MangaCarousel({ section }: { section: MangaSection }) {
                   className="manga-btn"
                   onClick={() => toggleExpand(manga.title)}
                 >
-                  {isExpanded ? "Fermer" : "Découvrir"}
+                  {isExpanded ? "Fermer" : "Infos rapides"}
                 </button>
 
                 <div className={`manga-extra ${isExpanded ? "expanded" : ""}`}>
                   <p className="manga-extra-desc">{manga.description}</p>
-                                    <div className="manga-info-row">
+                  <div className="manga-info-row">
                     <span>Épisodes VF</span>
                     <span>{manga.episodesVF ?? "-"}</span>
                   </div>
-                                    <div className="manga-info-row">
+                  <div className="manga-info-row">
                     <span>Épisodes VO</span>
                     <span>{manga.episodesVO ?? "-"}</span>
                   </div>
-                                    <div className="manga-info-row">
+                  <div className="manga-info-row">
                     <span>Saisons</span>
                     <span>{manga.seasons ?? "-"}</span>
                   </div>
-                                    <div className="manga-info-row">
+                  <div className="manga-info-row">
                     <span>Date de sortie</span>
                     <span>{manga.releaseDate ?? "-"}</span>
                   </div>
+                  <Link
+                    to={`/manga/${slugify(manga.title)}`}
+                    className="manga-details-link"
+                  >
+                    Voir la fiche complète →
+                  </Link>
                 </div>
               </article>
             );
@@ -280,8 +304,11 @@ function MangaCarousel({ section }: { section: MangaSection }) {
   );
 }
 
-function App() {
+// ---------------- PAGE ACCUEIL ----------------
+
+function HomePage() {
   const [scrollProgress, setScrollProgress] = useState(0);
+  const [search, setSearch] = useState("");
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -302,13 +329,29 @@ function App() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const boatX = -10 + scrollProgress * 110;
-  const clampedBoatX = Math.max(-10, Math.min(100, boatX));
+  // Liste plate de tous les mangas (pour la recherche)
+  const allMangas = useMemo(
+    () =>
+      SECTIONS.flatMap((section) =>
+        section.mangas.map((manga) => ({
+          ...manga,
+          sectionId: section.id,
+          sectionTitle: section.title,
+        }))
+      ),
+    []
+  );
 
-  const showLuffy =
-    (scrollProgress > 0.15 && scrollProgress < 0.22) ||
-    (scrollProgress > 0.45 && scrollProgress < 0.52) ||
-    scrollProgress > 0.8;
+  const searchResults = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return [];
+    return allMangas.filter(
+      (m) =>
+        m.title.toLowerCase().includes(q) ||
+        m.description.toLowerCase().includes(q) ||
+        (m.tag && m.tag.toLowerCase().includes(q))
+    );
+  }, [search, allMangas]);
 
   const handleAnchorClick = (
     event: React.MouseEvent<HTMLAnchorElement>,
@@ -360,6 +403,31 @@ function App() {
             Contact
           </a>
         </nav>
+
+        {/* BARRE DE RECHERCHE */}
+        <div className="navbar-search">
+          <input
+            type="text"
+            placeholder="Rechercher un manga..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          {searchResults.length > 0 && (
+            <div className="navbar-search-results">
+              <p className="navbar-search-title">Recommandations :</p>
+              {searchResults.slice(0, 5).map((manga) => (
+                <Link
+                  key={manga.title}
+                  to={`/manga/${slugify(manga.title)}`}
+                  className="navbar-search-item"
+                >
+                  <span>{manga.title}</span>
+                  {manga.tag && <span className="tag-pill">{manga.tag}</span>}
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
       </header>
 
       <main id="top">
@@ -371,8 +439,8 @@ function App() {
             </h1>
             <p>
               Un tableau de bord pour explorer tes mangas favoris par genre :
-              shonen, seinen, shojo et bien plus. Suis le navire jusqu'au trésor
-              et découvre de nouvelles séries à ajouter à ta liste.
+              shonen, seinen, shojo et bien plus. Utilise la recherche pour
+              trouver ta prochaine pépite.
             </p>
             <div className="hero-buttons">
               <a
@@ -405,9 +473,6 @@ function App() {
               <p className="progress-text">
                 {Math.round(scrollProgress * 100)}% du voyage complété
               </p>
-              <p className="hero-tip">
-                Fais défiler la page pour faire avancer le bateau !
-              </p>
             </div>
           </div>
         </section>
@@ -417,19 +482,21 @@ function App() {
           <MangaCarousel key={section.id} section={section} />
         ))}
 
-        {/* CONTACT / FOOTER */}
+        {/* CONTACT */}
         <section id="contact" className="section contact-section">
           <h2>Contact & idées</h2>
           <p>
             Tu veux ajouter d'autres catégories, séries ou fonctionnalités à
-            MangaDash ? Envoie tes idées et construisons le meilleur tableau
-            de bord manga.
+            MangaDash ? Envoie tes idées et construisons le meilleur tableau de
+            bord manga.
           </p>
           <div className="contact-content">
             <div className="contact-grid">
               <div className="contact-card">
                 <h3>Suggestions de mangas</h3>
-                <p>Propose tes shonen, seinen ou shojo favoris à mettre en avant.</p>
+                <p>
+                  Propose tes shonen, seinen ou shojo favoris à mettre en avant.
+                </p>
               </div>
               <div className="contact-card">
                 <h3>Fonctionnalités</h3>
@@ -495,58 +562,84 @@ function App() {
           </div>
         </section>
       </main>
+    </div>
+  );
+}
 
-      {/* MER + BATEAU + TRÉSOR */}
-      <div className="sea-layer">
-        <div className="sea-particles">
-          <span />
-          <span />
-          <span />
+// ---------------- PAGE DÉTAIL MANGA ----------------
+
+function MangaDetailPage() {
+  const { slug } = useParams<{ slug: string }>();
+  const navigate = useNavigate();
+
+  let manga: Manga | null = null;
+  let section: MangaSection | null = null;
+
+  for (const s of SECTIONS) {
+    const found = s.mangas.find((m) => slugify(m.title) === slug);
+    if (found) {
+      manga = found;
+      section = s;
+      break;
+    }
+  }
+
+  if (!manga || !section) {
+    return (
+      <div className="manga-page">
+        <p>Manga introuvable.</p>
+        <button onClick={() => navigate("/")}>Retour à l'accueil</button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="manga-page">
+      <button className="back-btn" onClick={() => navigate(-1)}>
+        ← Retour
+      </button>
+
+      <div className="manga-page-content">
+        <div className="manga-page-image">
+          <img src={manga.image} alt={manga.title} />
         </div>
-        <div
-          className="boat"
-          style={{ transform: `translateX(${clampedBoatX}vw)` }}
-        >
-          <div className="boat-glow" />
-          <div className="boat-body">
-            <div className="boat-hull" />
-            <div className="boat-deck">
-              <div className="boat-mast">
-                <div className="boat-sail sail-main" />
-                <div className="boat-sail sail-secondary" />
-                <div className="boat-flag">🏴‍☠️</div>
-              </div>
-              <div className="boat-cabin">
-                <div className="boat-window" />
-                <div className="boat-window" />
-              </div>
-              <div className="boat-lantern">
-                <span className="lantern-glow" />
-              </div>
-              <div className="boat-figurehead" />
-              {showLuffy && (
-                <div className="luffy-pop">
-                  <div className="luffy-hat" />
-                  <div className="luffy-face" />
-                </div>
-              )}
+        <div className="manga-page-info">
+          <h1>{manga.title}</h1>
+          <p className="manga-page-section">{section.title}</p>
+          <p className="manga-page-desc">{manga.description}</p>
+
+          <div className="manga-page-grid">
+            <div>
+              <h4>Épisodes VF</h4>
+              <p>{manga.episodesVF ?? "-"}</p>
+            </div>
+            <div>
+              <h4>Épisodes VO</h4>
+              <p>{manga.episodesVO ?? "-"}</p>
+            </div>
+            <div>
+              <h4>Saisons</h4>
+              <p>{manga.seasons ?? "-"}</p>
+            </div>
+            <div>
+              <h4>Date de sortie</h4>
+              <p>{manga.releaseDate ?? "-"}</p>
             </div>
           </div>
-          <div className="boat-wave-splash" />
-          <div className="boat-waves">
-            <span className="wave wave-one" />
-            <span className="wave wave-two" />
-          </div>
-        </div>
-
-        <div className="treasure">
-          <div className="treasure-chest">
-            <span className="treasure-emoji">💰</span>
-          </div>
-          <p className="treasure-label">One Piece (ton trésor de mangas)</p>
         </div>
       </div>
     </div>
+  );
+}
+
+// ---------------- ROUTES ----------------
+
+function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<HomePage />} />
+      <Route path="/manga/:slug" element={<MangaDetailPage />} />
+    </Routes>
   );
 }
 
