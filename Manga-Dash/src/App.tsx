@@ -93,8 +93,8 @@ function App() {
             try {
                 setLoading(true);
 
-                // On charge 3 pages max pour éviter le 429 (≈ 75 mangas)
-                const pagesToLoad = [1, 2, 3];
+                // On charge 5 pages max pour éviter le 429 (≈ 75 mangas)
+                const pagesToLoad = [1, 2, 3, 4, 5];
 
                 const all: Manga[] = [];
 
@@ -227,7 +227,7 @@ function App() {
                             <a href="#shonen" className="btn primary">
                                 Commencer l&apos;aventure
                             </a>
-                            <a href="#seinen" className="btn ghost">
+                            <a href="#shonen" className="btn ghost">
                                 Explorer les catégories
                             </a>
                         </div>
@@ -300,9 +300,15 @@ function App() {
                         <p>Une idée de fonctionnalité ou une pépite à ajouter au tableau ?</p>
                     </div>
                     <p style={{ color: "var(--text-muted)" }}>
-                        Tu pourras plus tard brancher un vrai formulaire ici. Pour
+                        Tu pourras plus tard brancher un vrai formulaire ici jeune hokage ou roi des pirates c'est toi qui décide. Pour
                         l&apos;instant, profite juste du dashboard 😄
+                        <br />
                     </p>
+
+                    <form action="post">
+                        
+
+                    </form>
                 </section>
             </main>
         </div>
